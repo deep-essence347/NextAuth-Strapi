@@ -1,0 +1,32 @@
+{
+  "kind": "collectionType",
+  "collectionName": "review_articles",
+  "info": {
+    "singularName": "review-article",
+    "pluralName": "review-articles",
+    "displayName": "Review Article",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "title": {
+      "type": "string"
+    },
+    "content": {
+      "type": "text"
+    },
+    "published": {
+      "type": "boolean",
+      "default": false
+    },
+    "review_comments": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::review-comment.review-comment",
+      "mappedBy": "review_article"
+    }
+  }
+}
