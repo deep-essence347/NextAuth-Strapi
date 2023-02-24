@@ -1,60 +1,127 @@
+import axios from "axios";
 import NextAuth from "next-auth";
+import Credentials from "next-auth/providers/credentials";
+import FacebookProvider from "next-auth/providers/facebook";
 import GoogleProvider from "next-auth/providers/google";
-const options = {
+
+const instance = axios.create({
+	baseURL: process.env.NEXT_PUBLIC_STRAPI_URL,
+	timeout: 10000,
+});
+export const options = {
 	providers: [
 		GoogleProvider({
 			clientId: process.env.GOOGLE_CLIENT_ID,
 			clientSecret: process.env.GOOGLE_CLIENT_SECRET,
 		}),
+		FacebookProvider({
+			clientId: process.env.FACEBOOK_CLIENT_ID,
+			clientSecret: process.env.FACEBOOK_CLIENT_SECRET,
+		}),
+		Credentials({
+			async authorize(credentials, req) {
+				const { username, email, password, newUser } = credentials;
+				let user = null;
+				let url = "";
+				if (newUser === "true") {
+					user = { username: username, email: email, password: password };
+					url = `/api/auth/local/register`;
+				} else {
+					user = { identifier: email, password: password };
+					url = `/api/auth/local`;
+				}
+				if (user) {
+					try {
+						const response = await instance.post(url, user, {
+							headers: {
+								"Content-Type": "application/json",
+							},
+						});
+						return response.data;
+					} catch (err) {
+						// console.log(err.response.data.error.message);
+						throw new Error(err.response.data.error.message);
+					}
+				} else {
+					console.log("no user");
+					return null;
+				}
+			},
+		}),
 	],
+	pages: {
+		signIn: "/auth/signin",
+		error: `/auth/signin`,
+	},
 	// database: process.env.NEXT_PUBLIC_DATABASE_URL,
 	session: {
 		strategy: "jwt",
 	},
 	callbacks: {
-		session: async (session, user) => {
-			session.jwt = user.jwt;
-			session.id = user.id;
+		redirect: async ({ baseUrl, url }) => {
+			return baseUrl;
+		},
+		session: async ({ session, token }) => {
+			session.jwt = token.jwt;
+			session.user.id = token.id;
 			return Promise.resolve(session);
 		},
-		jwt: async ({ token, account, user, profile }) => {
-			// console.log("Token:");
-			// console.log(token);
-			// console.log("user:");
-			// console.log(user);
-			// console.log("account:");
-			// console.log(account);
-			// console.log("Profile:");
-			// console.log(profile);
-			
+		jwt: async ({ account, profile, user, token }) => {
 			if (user) {
-				const url = `${process.env.NEXT_PUBLIC_API_URL}/api/auth/google/callback?access_token=${account.access_token}`;
-				console.log(url);
-				
+				const url = `/api/auth/${account.provider}/callback`;
+
 				try {
-					//Fetch request fails
-					const response = await fetch(url)
+					if (account.provider !== "credentials") {
+						const response = await instance.get(url, {
+							params: { access_token: account.access_token },
+						});
+						const data = await response.data;
 
-					//Does not run from here.
-					console.log(response);
-
-					const data = await response.json();
-					console.log(data);
-					token.jwt = data.jwt;
-					token.id = data.user.id;
-				} catch (error) {console.log(error)}
+						token.jwt = data.jwt;
+						token.id = data.user.id;
+					} else {
+						token = {
+							...token,
+							jwt: user.jwt,
+							id: user.user.id,
+							name: user.user.username,
+							email: user.user.email,
+						};
+					}
+				} catch (error) {
+					console.log(error);
+				}
 			}
+
 			return Promise.resolve(token);
 		},
 	},
 };
 
-/**
- * `fetch()` request fails due to which the `jwt token` and `user` is not obtained so the later erros of `JWT_SESSION_ERROR` could only be because of he failure of `fetch()`
- * 
- */
-
-
 const Auth = (req, res) => NextAuth(req, res, options);
 
 export default Auth;
+
+{
+	/* <script>
+  window.fbAsyncInit = function() {
+    FB.init({
+      appId      : '{your-app-id}',
+      cookie     : true,
+      xfbml      : true,
+      version    : '{api-version}'
+    });
+      
+    FB.AppEvents.logPageView();   
+      
+  };
+
+  (function(d, s, id){
+     var js, fjs = d.getElementsByTagName(s)[0];
+     if (d.getElementById(id)) {return;}
+     js = d.createElement(s); js.id = id;
+     js.src = "https://connect.facebook.net/en_US/sdk.js";
+     fjs.parentNode.insertBefore(js, fjs);
+   }(document, 'script', 'facebook-jssdk'));
+</script> */
+}

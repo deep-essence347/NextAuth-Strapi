@@ -1,16 +1,18 @@
 import {
 	Box,
 	Button,
-	Container, Stack,
-	Text
+	Container,
+	Stack,
+	Text,
+	useDisclosure,
 } from "@chakra-ui/react";
-import { getSession, signIn, signOut } from "next-auth/react";
+import { getSession, signIn, signOut, useSession } from "next-auth/react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
 
-export default function Home({ session }) {
-	const [lastReq, setLastReq] = useState("None");
-	const [filterOptions, setfilterOptions] = useState("");
+const Home = ({ email }: { email: any }) => {
+	const { isOpen, onOpen, onClose } = useDisclosure();
+	const { data } = useSession();
+	const session = data;
 
 	const signInButtonNode = () => {
 		if (session) {
@@ -19,6 +21,7 @@ export default function Home({ session }) {
 
 		return (
 			<div>
+				{/* <Modal isOpen={isOpen} onClose={onClose}> */}
 				<Link href="/api/auth/signin">
 					<Button
 						colorScheme={"blue"}
@@ -31,6 +34,7 @@ export default function Home({ session }) {
 						Sign In
 					</Button>
 				</Link>
+				{/* </Modal> */}
 			</div>
 		);
 	};
@@ -56,10 +60,6 @@ export default function Home({ session }) {
 		);
 	};
 
-	useEffect(() => {
-		console.log(session);
-	}, []);
-
 	return (
 		<Container marginX={0} maxWidth={"100%"}>
 			<Stack
@@ -82,20 +82,21 @@ export default function Home({ session }) {
 				width={"80vw"}
 				marginX={"auto"}
 			>
-				{session && (
-					<Text>AUTHORIZED...</Text>
-				)}
+				{session && <Text>Hello {session.user?.name}</Text>}
 				{!session && <Text>UNAUTHORIZED!</Text>}
 			</Box>
 		</Container>
 	);
-}
+};
 
-export const getServerSideProps = async ({ req }) => {
+export const getServerSideProps = async ({ req }: { req: any }) => {
 	const session = await getSession({ req });
+	console.log(session);
 	return {
 		props: {
 			session,
 		},
 	};
 };
+
+export default Home;
