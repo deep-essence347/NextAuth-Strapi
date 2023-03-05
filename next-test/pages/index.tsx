@@ -1,17 +1,11 @@
-import {
-	Box,
-	Button,
-	Container,
-	Stack,
-	Text,
-	useDisclosure,
-} from "@chakra-ui/react";
+import { Box, Button, Container, Stack, Text } from "@chakra-ui/react";
 import { getSession, signIn, signOut, useSession } from "next-auth/react";
 import Link from "next/link";
+import { useRouter } from "next/router";
 
-const Home = ({ email }: { email: any }) => {
-	const { isOpen, onOpen, onClose } = useDisclosure();
+const Home = () => {
 	const { data } = useSession();
+	const { push } = useRouter();
 	const session = data;
 
 	const signInButtonNode = () => {
@@ -21,7 +15,6 @@ const Home = ({ email }: { email: any }) => {
 
 		return (
 			<div>
-				{/* <Modal isOpen={isOpen} onClose={onClose}> */}
 				<Link href="/api/auth/signin">
 					<Button
 						colorScheme={"blue"}
@@ -34,7 +27,6 @@ const Home = ({ email }: { email: any }) => {
 						Sign In
 					</Button>
 				</Link>
-				{/* </Modal> */}
 			</div>
 		);
 	};
@@ -72,6 +64,20 @@ const Home = ({ email }: { email: any }) => {
 			>
 				{signOutButtonNode()}
 				{signInButtonNode()}
+				<Button
+					variant={"outline"}
+					colorScheme="green"
+					onClick={() => push(`/airtable/people`)}
+				>
+					People
+				</Button>
+				<Button
+					variant={"outline"}
+					colorScheme="green"
+					onClick={() => push(`/airtable/locations`)}
+				>
+					Location
+				</Button>
 			</Stack>
 			<Box
 				bg="grey"
@@ -91,7 +97,6 @@ const Home = ({ email }: { email: any }) => {
 
 export const getServerSideProps = async ({ req }: { req: any }) => {
 	const session = await getSession({ req });
-	console.log(session);
 	return {
 		props: {
 			session,
